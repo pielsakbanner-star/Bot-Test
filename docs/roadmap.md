@@ -22,7 +22,7 @@ translation, token bucket), `doctor.py` (17 checks), the Typer CLI, and CI.
 The order-submitting half of the `Broker` protocol is declared but deliberately
 unimplemented -- `test_phase_0_adapter_cannot_place_orders` asserts it.
 
-## Phase 1 — Read-only market data
+## Phase 1 — Read-only market data (complete)
 
 - Historical client and warm-up backfill.
 - Live websocket stream with reconnect and backfill.
@@ -31,6 +31,19 @@ unimplemented -- `test_phase_0_adapter_cannot_place_orders` asserts it.
 
 **Exit:** the bot runs a full session, logs bars for the universe, survives a
 forced disconnect, and produces a gap-free recorded series.
+
+**Delivered.** `data/types.py` (TimeFrame, Bar, numpy-backed BarWindow),
+`quality.py` (accept/suspect/reject gates), `aggregator.py` (session-aligned
+buckets, grace-timer sealing, synthetic gap fill), `staleness.py` (per-symbol
+watchdog, universe-wide connection heuristic), `historical.py` (warm-up and
+backfill, explicit adjustment policy), `recorder.py` (Hive-partitioned Parquet,
+prices stored as strings for exactness), `stream.py`, and `service.py` wiring
+them together, plus the `tradingbot stream` command.
+
+Verified live against the paper account: 5 symbols, 1775 warm-up bars, 15 live
+bars over 3 minutes, zero gaps, and a Parquet archive DuckDB reads in place.
+Gap recovery is by *bar continuity* rather than a disconnect callback, so it
+catches missed bars whatever the cause.
 
 ## Phase 2 — Risk and portfolio, still no orders
 
