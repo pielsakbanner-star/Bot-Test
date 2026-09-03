@@ -160,12 +160,18 @@ def configure_logging(
     *,
     mode: Mode,
     secrets: Iterable[str | SecretStr | None] = (),
+    quiet_console: bool = False,
 ) -> None:
     """Configure structlog and the stdlib root logger.
 
     Console output always goes to stderr so that stdout stays free for machine
     readable command output. A rotating file handler is added when ``log_dir``
     is set.
+
+    ``quiet_console`` raises the console handler to WARNING while the log file
+    keeps the configured level. One-shot commands use it: the result of
+    `doctor` is its table, and interleaving JSON log lines with that table
+    helps nobody. Warnings and errors still reach the terminal.
     """
     for secret in secrets:
         register_secret(secret)
@@ -217,6 +223,8 @@ def configure_logging(
 
     stream = logging.StreamHandler(sys.stderr)
     stream.setFormatter(formatter)
+    if quiet_console:
+        stream.setLevel(max(level, logging.WARNING))
     root.addHandler(stream)
 
     if config.log_dir is not None:

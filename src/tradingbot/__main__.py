@@ -91,6 +91,7 @@ def doctor(
         cfg.observability,
         mode=cfg.mode,
         secrets=[key, secret, secrets.alert_webhook_url],
+        quiet_console=True,
     )
     log = get_logger(__name__)
 

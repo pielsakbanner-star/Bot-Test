@@ -37,6 +37,26 @@ PDT_MAX_DAY_TRADES: Final = 3
 POSITION_SUMMARY_LIMIT: Final = 5
 
 
+def _clock_skew(
+    broker_time: datetime, before: datetime, after: datetime
+) -> tuple[timedelta, str]:
+    """Clock offset with the network round trip excluded.
+
+    The broker stamps its response somewhere between the moment we sent the
+    request and the moment we received it, so a timestamp inside [before, after]
+    is consistent with perfectly synced clocks. Only the distance *outside* that
+    interval is real skew. Measuring against a single local reading instead
+    charges the whole round trip to the clock, which fails a correct setup on a
+    slow link.
+    """
+    if broker_time < before:
+        # The broker stamped it earlier than we sent: our clock runs fast.
+        return before - broker_time, "ahead of"
+    if broker_time > after:
+        return broker_time - after, "behind"
+    return timedelta(0), "in sync with"
+
+
 class Status(StrEnum):
     PASS = "PASS"
     WARN = "WARN"
@@ -238,23 +258,24 @@ class Doctor:
     # --- clock and calendar --------------------------------------------------
 
     def _check_clock(self) -> list[CheckResult]:
+        before = self._now or datetime.now(UTC)
         try:
             clock = self._broker.get_clock()
         except BrokerError as exc:
             return [CheckResult("market.clock", Status.FAIL, str(exc))]
+        after = self._now or datetime.now(UTC)
 
-        local = self._now or datetime.now(UTC)
-        skew = abs(clock.timestamp - local)
+        skew, direction = _clock_skew(clock.timestamp, before, after)
+        rtt = (after - before).total_seconds()
         skew_status = Status.PASS if skew <= MAX_CLOCK_SKEW else Status.FAIL
-        results = [
-            CheckResult(
-                "market.clock",
-                skew_status,
-                f"broker clock skew {skew.total_seconds():.2f}s "
-                f"(limit {MAX_CLOCK_SKEW.total_seconds():.0f}s), "
-                f"market {'open' if clock.is_open else 'closed'}",
-            )
-        ]
+        detail = (
+            f"broker clock skew {skew.total_seconds():.2f}s "
+            f"(limit {MAX_CLOCK_SKEW.total_seconds():.0f}s, rtt {rtt:.2f}s), "
+            f"market {'open' if clock.is_open else 'closed'}"
+        )
+        if skew_status is Status.FAIL:
+            detail += f"; local clock is {direction} the broker -- resync NTP"
+        results = [CheckResult("market.clock", skew_status, detail)]
 
         if self._config.account.asset_class is AssetClass.CRYPTO:
             results.append(

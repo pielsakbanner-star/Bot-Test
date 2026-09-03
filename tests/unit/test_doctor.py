@@ -12,7 +12,7 @@ import pytest
 from tests.conftest import NOW, FakeBroker, FakeFeedProbe, make_account, make_asset
 from tradingbot.broker.protocol import OrderSnapshot, PositionSnapshot
 from tradingbot.config import AppConfig, Secrets, load_config
-from tradingbot.doctor import Doctor, DoctorReport, Status
+from tradingbot.doctor import Doctor, DoctorReport, Status, _clock_skew
 from tradingbot.errors import BrokerError
 
 
@@ -407,3 +407,41 @@ def test_live_with_a_blank_webhook_fails(
     )
     report = run_doctor(config, path, secrets)
     assert status_of(report, "alerts") is Status.FAIL
+
+
+# --- clock skew measurement ---------------------------------------------------
+
+
+def test_round_trip_latency_is_not_counted_as_skew() -> None:
+    """A slow link must not fail a correctly-synced clock. The broker stamps its
+    response somewhere inside our send/receive window, so a timestamp in that
+    window means the clocks agree."""
+    before = NOW
+    after = NOW + timedelta(seconds=5)
+    skew, direction = _clock_skew(NOW + timedelta(seconds=2), before, after)
+    assert skew == timedelta(0)
+    assert direction == "in sync with"
+
+
+def test_skew_measured_from_the_edge_of_the_window() -> None:
+    before = NOW
+    after = NOW + timedelta(seconds=1)
+    skew, direction = _clock_skew(NOW + timedelta(seconds=4), before, after)
+    assert skew == timedelta(seconds=3)  # 4s past `after`, not 4s past `before`
+    assert direction == "behind"
+
+
+def test_local_clock_running_fast_is_reported_as_ahead() -> None:
+    before = NOW
+    after = NOW + timedelta(seconds=1)
+    skew, direction = _clock_skew(NOW - timedelta(seconds=3), before, after)
+    assert skew == timedelta(seconds=3)
+    assert direction == "ahead of"
+
+
+def test_clock_failure_detail_names_the_direction(healthy: Any) -> None:
+    config, path, secrets = healthy
+    broker = FakeBroker(clock_ts=NOW + timedelta(seconds=30))
+    report = run_doctor(config, path, secrets, broker)
+    assert status_of(report, "market.clock") is Status.FAIL
+    assert "resync NTP" in detail_of(report, "market.clock")
