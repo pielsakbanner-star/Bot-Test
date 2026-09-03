@@ -119,8 +119,9 @@ observability:
   metrics_port: 9090
   alerts:
     webhook_env: ALERT_WEBHOOK_URL
-    on: [kill_switch, risk_halt, reconciliation_mismatch, order_reject_streak,
-         data_disconnect, unhandled_exception, daily_summary]
+    events: [kill_switch, risk_halt, reconciliation_mismatch,
+             order_reject_streak, data_disconnect, unhandled_exception,
+             daily_summary]
 
 storage:
   journal_url: sqlite:///./data/journal.db

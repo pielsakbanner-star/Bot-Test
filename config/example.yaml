@@ -17,8 +17,11 @@ session:
   warmup_multiplier: 1.5
 
 strategies:
+  # Disabled: the strategy engine lands in Phase 3 and this class does not exist
+  # yet, so `doctor` would (correctly) fail its importability check. Flip to
+  # true once you have implemented it.
   - id: sma_crossover
-    enabled: true
+    enabled: false
     class: tradingbot.strategies.sma_crossover:SmaCrossover
     symbols: [SPY, QQQ]
     timeframe: 5Min
@@ -79,7 +82,7 @@ observability:
   metrics_port: 9090
   alerts:
     webhook_env: ALERT_WEBHOOK_URL
-    on:
+    events:
       - kill_switch
       - risk_halt
       - reconciliation_mismatch

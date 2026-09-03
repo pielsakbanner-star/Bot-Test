@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # CI never holds live credentials. See docs/testing.md section 7.
+  ALPACA_LIVE_KEY_ID: ""
+  ALPACA_LIVE_SECRET_KEY: ""
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --frozen --group dev
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Type check
+        run: uv run mypy src tests
+
+      - name: Test
+        # -m "not paper" keeps CI off the network. The paper contract tests run
+        # in the nightly job, which is the only place paper keys exist.
+        run: uv run pytest -m "not paper" --cov --cov-report=term-missing
+
+      - name: Risk and execution coverage floor
+        # docs/testing.md requires 90% for these two packages specifically.
+        run: |
+          if [ -d src/tradingbot/risk ] || [ -d src/tradingbot/execution ]; then
+            uv run pytest -m "not paper" \
+              --cov=src/tradingbot/risk --cov=src/tradingbot/execution \
+              --cov-fail-under=90 -q
+          else
+            echo "risk/ and execution/ land in Phase 2-3; floor not yet applicable."
+          fi

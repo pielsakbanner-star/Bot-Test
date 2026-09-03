@@ -4,7 +4,7 @@ Phases are ordered so that the safety machinery exists before anything can place
 an order. Each phase has an exit criterion; do not start the next one until it
 is met.
 
-## Phase 0 — Foundations
+## Phase 0 — Foundations ✅ complete
 
 - Project scaffold, `pyproject.toml`, lint/type/test tooling, CI.
 - Typed config loading and validation.
@@ -14,6 +14,13 @@ is met.
 
 **Exit:** `doctor` passes against a paper account and prints a complete
 pass/fail table. Nothing can place an order yet.
+
+**Delivered.** `config.py` (Pydantic models, live-mode gates), `errors.py`,
+`observability/logging.py` (structlog, correlation ids, redaction),
+`broker/protocol.py` (the seam), `broker/alpaca.py` (read-only half, error
+translation, token bucket), `doctor.py` (17 checks), the Typer CLI, and CI.
+The order-submitting half of the `Broker` protocol is declared but deliberately
+unimplemented -- `test_phase_0_adapter_cannot_place_orders` asserts it.
 
 ## Phase 1 — Read-only market data
 

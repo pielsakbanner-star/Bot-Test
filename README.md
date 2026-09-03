@@ -82,7 +82,9 @@ python -m tradingbot run --config config/local.yaml --mode live --i-understand-t
 
 ---
 
-## Repository layout (planned)
+## Repository layout
+
+Phase 0 is built; the rest is specified but not yet written.
 
 ```
 .
@@ -90,28 +92,32 @@ python -m tradingbot run --config config/local.yaml --mode live --i-understand-t
 ├── pyproject.toml             # dependency floors, ruff/mypy/pytest config
 ├── uv.lock                    # resolved versions; what production installs
 ├── .env.example
+├── .github/workflows/ci.yml
 ├── config/
 │   ├── example.yaml           # committed template
 │   └── local.yaml             # gitignored, yours
 ├── docs/                      # this documentation set
 ├── src/tradingbot/
-│   ├── __main__.py            # CLI entrypoint
-│   ├── config.py              # typed config loading + validation
-│   ├── broker/                # Alpaca adapter behind a Broker protocol
-│   ├── data/                  # historical + live market data
-│   ├── strategies/            # strategy implementations
-│   ├── risk/                  # risk manager, position sizing
-│   ├── execution/             # order router, reconciliation
-│   ├── portfolio/             # positions, P&L, exposure
-│   ├── backtest/              # replay engine + metrics
-│   └── observability/         # logging, metrics, alerts
+│   ├── __main__.py            # CLI: doctor, run, version         [built]
+│   ├── config.py              # typed config + live-mode gates     [built]
+│   ├── errors.py              # error hierarchy                    [built]
+│   ├── doctor.py              # pre-flight checks                  [built]
+│   ├── broker/
+│   │   ├── protocol.py        # the broker seam (ADR 0004)         [built]
+│   │   └── alpaca.py          # read-only half + error translation [built]
+│   ├── observability/
+│   │   └── logging.py         # structlog, correlation, redaction  [built]
+│   ├── data/                  # historical + live market data      [Phase 1]
+│   ├── portfolio/             # positions, P&L, exposure           [Phase 2]
+│   ├── risk/                  # risk manager, position sizing      [Phase 2]
+│   ├── strategies/            # strategy implementations           [Phase 3]
+│   ├── execution/             # order router, reconciliation       [Phase 3]
+│   └── backtest/              # replay engine + metrics            [Phase 4]
 └── tests/
     ├── unit/
     ├── integration/           # against Alpaca paper
     └── fixtures/              # recorded market data
 ```
-
----
 
 ## Risk notice
 
