@@ -63,7 +63,7 @@ def test_timeframe_parsing(text: str, amount: int, unit: TimeFrameUnit) -> None:
 
 @pytest.mark.parametrize("text", ["5m", "min", "0Min", "5 Min", "5Minutes", ""])
 def test_bad_timeframes_are_rejected(text: str) -> None:
-    with pytest.raises(ValueError, match="timeframe|positive"):
+    with pytest.raises(ValueError, match=r"timeframe|positive"):
         TimeFrame.parse(text)
 
 
@@ -118,7 +118,7 @@ def test_vwap_is_volume_weighted() -> None:
     agg.add(minute_bar(0, "100", volume="1000"))
     agg.add(minute_bar(1, "200", volume="3000"))
     (bar,) = agg.add(minute_bar(5))
-    # (100*1000 + 200*3000) / 4000 == 175
+    # Volume-weighted average of 100 on 1000 and 200 on 3000 shares is 175.
     assert bar.vwap == Decimal("175")
 
 
@@ -279,13 +279,19 @@ def test_window_rejects_out_of_order_and_mismatched_bars() -> None:
         window.append(minute_bar(2, symbol="QQQ"))
 
 
-def test_window_tracks_last_and_emptiness() -> None:
+def test_a_new_window_is_empty() -> None:
     window = BarWindow("SPY", ONE_MINUTE, capacity=2)
     assert window.last is None
     assert not window.is_full
+    assert len(window) == 0
+
+
+def test_window_tracks_the_latest_bar() -> None:
+    window = BarWindow("SPY", ONE_MINUTE, capacity=2)
     window.append(minute_bar(0, "101"))
-    assert window.last is not None
-    assert window.last.close == Decimal("101")
+    latest = window.last
+    assert latest is not None
+    assert latest.close == Decimal("101")
 
 
 def test_naive_timestamps_are_rejected() -> None:

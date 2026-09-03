@@ -125,13 +125,15 @@ def doctor(
 def stream(
     config: ConfigOption,
     minutes: Annotated[
-        int,
+        # None, not 0: click validates the default against `min`, so a 0
+        # sentinel makes omitting the flag an error.
+        int | None,
         typer.Option(
             "--minutes",
             min=1,
             help="Stop after this many minutes. Omit --minutes to run until Ctrl-C.",
         ),
-    ] = 0,
+    ] = None,
     mode: ModeOption = None,
 ) -> None:
     """Run the read-only market-data pipeline: warm up, stream, record.
@@ -183,9 +185,9 @@ def stream(
     )
     service.warm_up()
     typer.echo(
-        "Streaming. Ctrl-C to stop."
-        if not minutes
-        else f"Streaming for {minutes} minute(s). Ctrl-C to stop early."
+        f"Streaming for {minutes} minute(s). Ctrl-C to stop early."
+        if minutes
+        else "Streaming until the session closes. Ctrl-C to stop."
     )
     asyncio.run(_stream_until_stopped(service, minutes))
 
@@ -203,7 +205,9 @@ def stream(
     log.info("stream.complete", **stats)
 
 
-async def _stream_until_stopped(service: MarketDataService, minutes: int) -> None:
+async def _stream_until_stopped(
+    service: MarketDataService, minutes: int | None
+) -> None:
     loop = asyncio.get_running_loop()
     task = asyncio.create_task(service.run())
 

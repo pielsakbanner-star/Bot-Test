@@ -19,7 +19,9 @@ T0 = datetime(2026, 9, 3, 13, 30, tzinfo=UTC)
 FIVE_MIN = TimeFrame(5, TimeFrameUnit.MINUTE)
 
 
-def bar(minute: int = 0, close: str = "100.05", *, symbol: str = "SPY", **kw: object) -> Bar:
+def bar(
+    minute: int = 0, close: str = "100.05", *, symbol: str = "SPY", **kw: object
+) -> Bar:
     price = Decimal(close)
     return Bar(
         symbol=symbol,

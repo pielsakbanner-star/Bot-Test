@@ -196,8 +196,8 @@ async def test_gap_triggers_backfill_and_fills_the_window(tmp_path: Path) -> Non
     async def sink(bar: Bar) -> None:
         published.append(bar)
 
-    missing = [minute_bar(i, "10%d" % i) for i in (1, 2, 3)]
-    service, _, hist = build_service(
+    missing = [minute_bar(i, f"10{i}") for i in (1, 2, 3)]
+    service, _, _hist = build_service(
         tmp_path,
         historical=FakeHistorical({"SPY": missing}),
         timeframes=(ONE_MINUTE,),
@@ -217,9 +217,7 @@ async def test_gap_triggers_backfill_and_fills_the_window(tmp_path: Path) -> Non
 
 async def test_backfill_failure_is_survivable(tmp_path: Path) -> None:
     hist = FakeHistorical({"SPY": [minute_bar(1)]})
-    service, _, _ = build_service(
-        tmp_path, historical=hist, timeframes=(ONE_MINUTE,)
-    )
+    service, _, _ = build_service(tmp_path, historical=hist, timeframes=(ONE_MINUTE,))
     hist.fail = True
     await service.on_minute_bar(minute_bar(0))
     await service.on_minute_bar(minute_bar(5))

@@ -104,3 +104,37 @@ def test_run_is_not_implemented_yet(
     result = runner.invoke(app, ["run", "--config", str(path)])
     assert result.exit_code == 3
     assert "Phase 3" in output(result)
+
+
+# --- stream ---------------------------------------------------------------
+
+
+def test_stream_help_lists_the_command() -> None:
+    result = runner.invoke(app, ["--help"])
+    assert result.exit_code == 0
+    assert "stream" in output(result)
+
+
+def test_stream_accepts_a_minutes_limit(tmp_path: Path) -> None:
+    path = write(tmp_path)
+    result = runner.invoke(app, ["stream", "--config", str(path), "--minutes", "5"])
+    # No credentials in this env, so it stops at the config gate -- which is
+    # past option parsing, and that is what this asserts.
+    assert result.exit_code == 2
+    assert "ALPACA_PAPER" in output(result)
+
+
+def test_stream_runs_without_a_minutes_flag(tmp_path: Path) -> None:
+    """Omitting --minutes means "until the session closes". A 0 default would
+    fail click's own min=1 validation before the command ever ran."""
+    path = write(tmp_path)
+    result = runner.invoke(app, ["stream", "--config", str(path)])
+    assert "Invalid value for '--minutes'" not in output(result)
+    assert result.exit_code == 2  # missing credentials, not a usage error
+
+
+def test_stream_rejects_a_zero_minutes_flag(tmp_path: Path) -> None:
+    path = write(tmp_path)
+    result = runner.invoke(app, ["stream", "--config", str(path), "--minutes", "0"])
+    assert result.exit_code != 0
+    assert "--minutes" in output(result)

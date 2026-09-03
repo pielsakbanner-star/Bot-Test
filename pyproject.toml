@@ -58,6 +58,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tradingbot"]
+# PEP 561: without py.typed, an installed tradingbot is treated as untyped.
+artifacts = ["src/tradingbot/py.typed"]
 
 # ----------------------------------------------------------------------------
 # Lint / format
