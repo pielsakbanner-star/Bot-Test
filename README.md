@@ -5,8 +5,11 @@ An automated, event-driven trading system that executes strategies against the
 evaluates strategy logic, applies risk controls, and submits orders — with a
 hard separation between **paper** and **live** trading.
 
-> **Status:** design / documentation phase. No executable code has been written yet.
-> This repository currently contains the specification the implementation will follow.
+> **Status:** design phase. The stack is chosen (Python 3.12 + `alpaca-py` —
+> see [tech-stack.md](docs/tech-stack.md)) and `pyproject.toml` is in place, but
+> no engine code has been written yet. Everything below the Quickstart describes
+> the specification the implementation will follow. Start at
+> [Phase 0](docs/roadmap.md#phase-0--foundations).
 
 ---
 
@@ -16,6 +19,7 @@ hard separation between **paper** and **live** trading.
 |---|---|
 | [Requirements](docs/requirements.md) | Scope, goals, non-goals, functional and non-functional requirements |
 | [Architecture](docs/architecture.md) | Components, event flow, threading/async model, project layout |
+| [Tech Stack](docs/tech-stack.md) | Every dependency, its role, and what was rejected |
 | [Alpaca Integration](docs/alpaca-integration.md) | SDK usage, endpoints, order semantics, rate limits, gotchas |
 | [Data Pipeline](docs/data-pipeline.md) | Historical + streaming bars, bar aggregation, storage, gap handling |
 | [Strategy Framework](docs/strategy-framework.md) | Strategy interface, signal model, worked example |
@@ -35,9 +39,8 @@ The commands below describe the interface the implementation must provide.
 They will not work until Phase 1 of the [roadmap](docs/roadmap.md) is complete.
 
 ```bash
-# 1. Install
-python -m venv .venv && .venv/Scripts/activate   # Windows
-pip install -e ".[dev]"
+# 1. Install (uv manages the venv and the lockfile)
+uv sync
 
 # 2. Configure
 cp .env.example .env          # then fill in your Alpaca paper keys
@@ -84,7 +87,8 @@ python -m tradingbot run --config config/local.yaml --mode live --i-understand-t
 ```
 .
 ├── README.md
-├── pyproject.toml
+├── pyproject.toml             # dependency floors, ruff/mypy/pytest config
+├── uv.lock                    # resolved versions; what production installs
 ├── .env.example
 ├── config/
 │   ├── example.yaml           # committed template

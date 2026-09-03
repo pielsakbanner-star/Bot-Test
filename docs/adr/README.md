@@ -13,3 +13,6 @@ never edited after acceptance — superseded records get a successor and a note.
 | [0003](0003-risk-manager-as-mandatory-gate.md) | Risk manager as a mandatory gate outside strategies | Accepted |
 | [0004](0004-broker-protocol-shared-code-path.md) | Broker protocol so backtest and live share one code path | Accepted |
 | [0005](0005-broker-side-brackets-by-default.md) | Broker-side bracket orders by default | Accepted |
+| [0006](0006-storage-sqlite-parquet-duckdb.md) | SQLite journal, Parquet bar archive, DuckDB for analysis | Accepted |
+| [0007](0007-observability-stack.md) | structlog, prometheus-client, and Apprise | Accepted |
+| [0008](0008-numeric-conventions.md) | Decimal for money, numpy for series | Accepted |

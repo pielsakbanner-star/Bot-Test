@@ -2,17 +2,25 @@
 
 ## 1. Deployment
 
-**Development:** the operator's workstation, paper mode only.
+**Development:** the operator's Windows workstation, paper mode only.
 
-**Production:** a small always-on host — VPS or a dedicated machine — with:
+**Production: Linux.** Develop on Windows, deploy to a small always-on Linux
+VPS. Three concrete reasons, not preference:
+
+- `uvloop` does not exist on Windows, so the asyncio loop is slower there.
+- Windows' Proactor event loop has its own subprocess and signal-handling
+  quirks — friction you do not want anywhere near the crash-recovery path.
+- systemd's `StartLimitBurst` / `StartLimitIntervalSec` give you the restart
+  rate limit below for free. On Windows you build it yourself, and an unbounded
+  crash loop can submit unbounded orders.
+
+WSL2 gives dev/prod parity on the workstation. The production host needs:
 
 - Wired network, or at minimum a connection you would not describe as "usually
   fine". A dropped connection during an open position is the failure mode that
   costs money.
-- Automatic restart on crash (systemd on Linux, a Windows Service or Task
-  Scheduler entry on Windows) with a restart *rate limit* — restart 3 times in 10
-  minutes, then stop and alert. An unbounded crash loop can submit unbounded
-  orders.
+- Automatic restart on crash with a restart *rate limit* — 3 restarts in 10
+  minutes, then stop and alert.
 - NTP time sync enabled. Bar alignment depends on the clock.
 - Disk space monitoring — the journal and bar recordings grow.
 
@@ -20,9 +28,10 @@ Co-location or low-latency hosting is not needed. Nothing in the design is
 latency-sensitive at the millisecond scale; correctness is the binding
 constraint.
 
-Run production in a container or a dedicated virtualenv pinned by lockfile.
-The live host holds only live credentials; the dev machine holds only paper
-credentials. Do not put both key pairs anywhere.
+Run production from a container built against a committed `uv.lock`, or from a
+virtualenv created with `uv sync --frozen`. Never resolve dependencies on the
+live host. The live host holds only live credentials; the dev machine holds only
+paper credentials. Do not put both key pairs anywhere.
 
 ## 2. Daily runbook
 
