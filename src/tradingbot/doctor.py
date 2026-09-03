@@ -460,12 +460,13 @@ class Doctor:
 
     def _check_alerts(self) -> CheckResult:
         alerts = self._config.observability.alerts
-        configured = self._secrets.alert_webhook_url is not None
+        configured = self._secrets.has_alert_webhook
         if self._config.mode is Mode.LIVE and not configured:
             return CheckResult(
                 "alerts",
                 Status.FAIL,
-                f"live mode requires an alert channel; {alerts.webhook_env} is unset",
+                f"live mode requires an alert channel; "
+                f"{alerts.webhook_env} is empty or unset",
             )
         if not configured:
             return CheckResult(

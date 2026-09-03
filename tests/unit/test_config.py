@@ -317,3 +317,27 @@ def test_live_credentials_are_not_used_for_paper() -> None:
     )
     with pytest.raises(ConfigError, match="ALPACA_PAPER"):
         secrets.credentials_for(Mode.PAPER)
+
+
+@pytest.mark.parametrize("blank", ["", "   "])
+def test_blank_credentials_count_as_missing(blank: str) -> None:
+    """`FOO=` in a .env parses as the empty string, not as absent. Without this
+    the empty value reaches the SDK and surfaces as an opaque authentication
+    traceback instead of a config error naming the variable."""
+    secrets = Secrets(
+        _env_file=None,
+        alpaca_paper_key_id=blank,
+        alpaca_paper_secret_key=blank,
+    )
+    with pytest.raises(ConfigError, match="empty or unset"):
+        secrets.credentials_for(Mode.PAPER)
+
+
+def test_partially_blank_credentials_name_only_the_blank_one() -> None:
+    secrets = Secrets(
+        _env_file=None,
+        alpaca_paper_key_id="PKID000000",
+        alpaca_paper_secret_key="",
+    )
+    with pytest.raises(ConfigError, match="ALPACA_PAPER_SECRET_KEY is empty"):
+        secrets.credentials_for(Mode.PAPER)

@@ -499,6 +499,17 @@ class AppConfig(_Model):
 # -----------------------------------------------------------------------------
 
 
+def _is_present(value: SecretStr | None) -> bool:
+    """A blank secret is an absent secret.
+
+    ``FOO=`` in a .env file parses as the empty string rather than as absent, so
+    an ``is None`` test silently accepts it. For a credential that surfaces as
+    an opaque SDK error; for the alert webhook it would let live mode start with
+    no alert channel, which is a safety control, not a nicety.
+    """
+    return value is not None and bool(value.get_secret_value().strip())
+
+
 class Secrets(BaseSettings):
     """Credentials, read from the environment or ``.env``. Never from YAML."""
 
@@ -511,6 +522,11 @@ class Secrets(BaseSettings):
     alpaca_live_key_id: SecretStr | None = None
     alpaca_live_secret_key: SecretStr | None = None
     alert_webhook_url: SecretStr | None = None
+
+    @property
+    def has_alert_webhook(self) -> bool:
+        """True only when the webhook is set to a non-blank value."""
+        return _is_present(self.alert_webhook_url)
 
     def credentials_for(self, mode: Mode) -> tuple[SecretStr, SecretStr]:
         """Return the key pair for ``mode``.
@@ -530,12 +546,29 @@ class Secrets(BaseSettings):
                 self.alpaca_paper_secret_key,
                 "ALPACA_PAPER",
             )
-        if key is None or secret is None:
+
+        # A blank value counts as missing. `FOO=` in a .env file parses as the
+        # empty string, not as absent, and passing that to the SDK produces an
+        # opaque "you must supply a method of authentication" traceback several
+        # frames away from the actual problem.
+        missing = [
+            name
+            for name, value in (
+                (f"{prefix}_KEY_ID", key),
+                (f"{prefix}_SECRET_KEY", secret),
+            )
+            if not _is_present(value)
+        ]
+        if missing:
             msg = (
-                f"mode is {mode.value} but {prefix}_KEY_ID / {prefix}_SECRET_KEY "
-                "are not set in the environment"
+                f"mode is {mode.value} but {' and '.join(missing)} "
+                f"{'is' if len(missing) == 1 else 'are'} empty or unset. "
+                f"Set {prefix}_KEY_ID and {prefix}_SECRET_KEY in .env "
+                "(uncommented, with values)."
             )
             raise ConfigError(msg)
+
+        assert key is not None and secret is not None  # narrowed by the check above
         return key, secret
 
 

@@ -374,3 +374,36 @@ def test_storage_paths_are_created(healthy: Any, tmp_path: Path) -> None:
     report = run_doctor(config, path, secrets)
     assert status_of(report, "storage.writable") is Status.PASS
     assert (tmp_path / "data" / "bars").is_dir()
+
+
+def test_blank_webhook_is_not_a_configured_alert_channel(
+    config_dict: dict[str, Any], write_config: Any
+) -> None:
+    """`ALERT_WEBHOOK_URL=` reads as the empty string, not as absent. Treating
+    that as configured would let live mode start with no alert channel."""
+    config_dict["strategies"] = []
+    config, path = build(config_dict, write_config)
+    secrets = Secrets(
+        _env_file=None,
+        alpaca_paper_key_id="PKID000000",
+        alpaca_paper_secret_key="paper-secret-0123456789",
+        alert_webhook_url="",
+    )
+    report = run_doctor(config, path, secrets)
+    assert status_of(report, "alerts") is Status.WARN
+
+
+def test_live_with_a_blank_webhook_fails(
+    config_dict: dict[str, Any], write_config: Any
+) -> None:
+    config_dict["mode"] = "live"
+    config_dict["strategies"] = []
+    config, path = build(config_dict, write_config, name="live.yaml", live_ack=True)
+    secrets = Secrets(
+        _env_file=None,
+        alpaca_live_key_id="AKID000000",
+        alpaca_live_secret_key="live-secret-0123456789",
+        alert_webhook_url="   ",
+    )
+    report = run_doctor(config, path, secrets)
+    assert status_of(report, "alerts") is Status.FAIL
