@@ -1,0 +1,93 @@
+# Example configuration. Copy to config/local.yaml (gitignored) and edit.
+# Every value here is validated at startup; see docs/configuration.md.
+# Run `python -m tradingbot doctor --config config/local.yaml` after any change.
+
+mode: paper                      # paper | live (live also needs --i-understand-the-risk)
+
+account:
+  data_feed: iex                 # iex (free) | sip (paid)
+  asset_class: us_equity         # us_equity | crypto
+
+universe:
+  symbols: [SPY, QQQ, AAPL, MSFT, NVDA]
+
+session:
+  trade_regular_hours: true
+  trade_extended_hours: false    # true forces limit + day orders only
+  warmup_multiplier: 1.5
+
+strategies:
+  - id: sma_crossover
+    enabled: true
+    class: tradingbot.strategies.sma_crossover:SmaCrossover
+    symbols: [SPY, QQQ]
+    timeframe: 5Min
+    params:
+      fast: 20
+      slow: 50
+      atr_mult: 2.0
+    risk_overrides:              # may only tighten account-level limits
+      max_position_pct: 5.0
+
+risk:
+  max_daily_loss_pct: 2.0
+  max_drawdown_pct: 10.0
+  max_gross_exposure_pct: 100.0
+  max_net_exposure_pct: 100.0
+  max_open_positions: 10
+  max_position_pct: 10.0
+  max_order_notional_pct: 5.0
+  max_order_pct_adv: 1.0
+  min_price: 5.00
+  max_spread_bps: 30
+  allow_shorts: false
+  pdt_policy: block_entries      # strict | block_entries | ignore
+  sizing:
+    method: volatility_target    # volatility_target | fixed_fractional | fixed_notional | equal_weight
+    risk_per_trade_pct: 0.5
+    atr_period: 14
+    atr_multiple: 2.0
+  eod_policy: flatten_intraday   # flatten_all | flatten_intraday | hold
+  flatten_lead_minutes: 10
+  strict_reconciliation: true
+  kill_liquidates: true
+
+execution:
+  default_order_type: limit
+  limit_offset_bps: 5
+  order_timeout_seconds: 60
+  reprice_attempts: 2
+  use_bracket_orders: true
+  emergency_broker_stop_pct: 10.0
+  orphan_position_policy: flatten   # adopt | flatten | ignore
+
+data:
+  stale_threshold_seconds: 90
+  max_bar_move_pct: 20.0
+  reconnect_max_seconds: 300
+  disconnect_policy: halt        # halt | flatten
+  record_live_bars: true
+
+reconciliation:
+  on_startup: true
+  interval_minutes: 15
+
+observability:
+  log_level: INFO
+  log_format: json
+  log_dir: ./logs
+  metrics_port: 9090
+  alerts:
+    webhook_env: ALERT_WEBHOOK_URL
+    on:
+      - kill_switch
+      - risk_halt
+      - reconciliation_mismatch
+      - order_reject_streak
+      - data_disconnect
+      - unhandled_exception
+      - daily_summary
+
+storage:
+  journal_url: sqlite:///./data/journal.db
+  bars_dir: ./data/bars
